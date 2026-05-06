@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô Phỏng Sự Chuyển Thể Của Nước</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #e0f7fa;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            background: white;
+            width: 950px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* --- CỘT TRÁI: MÔ PHỎNG --- */
+        .simulation-panel {
+            flex: 1.2;
+            background: linear-gradient(to bottom, #cfd8dc, #eceff1);
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            border-right: 2px solid #b0bec5;
+        }
+
+        .phenomenon-badge {
+            background-color: transparent;
+            color: transparent;
+            padding: 10px 25px;
+            font-size: 24px;
+            font-weight: 900;
+            border-radius: 30px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.4s ease;
+            box-shadow: none;
+            height: 35px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+        .badge-active {
+            background-color: #ff5722;
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 87, 34, 0.5);
+            transform: scale(1.1);
+        }
+
+        /* --- Nắp kính & Hơi nước đọng --- */
+        .glass-lid {
+            width: 220px;
+            height: 25px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 3px solid rgba(144, 164, 174, 0.8);
+            border-radius: 15px;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 10;
+            overflow: hidden;
+        }
+
+        .lid-sweat {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 15px;
+            background-image: radial-gradient(circle, rgba(2, 136, 209, 0.85) 15%, transparent 15%),
+                              radial-gradient(circle, rgba(2, 136, 209, 0.6) 20%, transparent 20%);
+            background-size: 20px 20px, 35px 35px;
+            background-position: 0 0, 15px 10px;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+        }
+
+        /* --- Cốc chứa & Nước --- */
+        .beaker {
+            width: 200px;
+            height: 250px;
+            border: 6px solid rgba(255, 255, 255, 0.9);
+            border-top: none;
+            border-radius: 0 0 30px 30px;
+            position: relative;
+            background-color: rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 2;
+            overflow: hidden; 
+        }
+
+        .droplets-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none; 
+            pointer-events: none;
+            z-index: 4;
+        }
+        .drop {
+            position: absolute;
+            width: 9px;
+            height: 14px;
+            background: #0288d1;
+            border-radius: 50% 50% 0 0;
+            opacity: 0;
+            animation: fall 1s infinite cubic-bezier(0.55, 0.085, 0.68, 0.53);
+        }
+        .drop:nth-child(1) { left: 25%; animation-delay: 0.2s; }
+        .drop:nth-child(2) { left: 50%; animation-delay: 0.5s; width: 11px; height: 16px; }
+        .drop:nth-child(3) { left: 75%; animation-delay: 0.8s; }
+
+        @keyframes fall {
+            0% { transform: translateY(0) scale(0.5); opacity: 1; }
+            20% { transform: translateY(20px) scale(1.2); opacity: 1; }
+            100% { transform: translateY(180px) scale(1); opacity: 0; }
+        }
+
+        .water {
+            width: 100%;
+            height: 55%; 
+            background: rgba(41, 182, 246, 0.65);
+            border-radius: 0 0 20px 20px;
+            transition: height 4s ease-in-out, background 3s ease-in-out;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* --- Bọt khí khi sôi --- */
+        .boiling-bubbles {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1s;
+            pointer-events: none;
+        }
+        .boil-bubble {
+            position: absolute;
+            bottom: -10px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            animation: boilRise infinite ease-in;
+        }
+        .boil-bubble:nth-child(1) { width: 14px; height: 14px; left: 25%; animation-duration: 0.8s; animation-delay: 0.1s;}
+        .boil-bubble:nth-child(2) { width: 20px; height: 20px; left: 50%; animation-duration: 0.6s; animation-delay: 0.3s;}
+        .boil-bubble:nth-child(3) { width: 12px; height: 12px; left: 75%; animation-duration: 0.9s; animation-delay: 0.5s;}
+
+        @keyframes boilRise {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { opacity: 1; }
+            100% { transform: translateY(-80px) scale(1.5); opacity: 0; }
+        }
+
+        /* --- Cấu trúc băng --- */
+        .ice-structure {
+            width: 140px;
+            height: 110px;
+            background: transparent;
+            border: 4px solid rgba(255, 255, 255, 0.7);
+            border-radius: 10px;
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            transition: opacity 3s ease-in-out, transform 3s ease-in-out;
+            box-shadow: inset 0 0 30px rgba(255,255,255,0.8);
+            opacity: 0;
+            z-index: 3;
+            pointer-events: none;
+        }
+        .ice-structure::after {
+            content: '';
+            position: absolute;
+            top: 10%; left: 10%; right: 10%; bottom: 10%;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 5px;
+        }
+
+        /* --- Hơi nước bay lên --- */
+        .steam-container {
+            position: absolute;
+            bottom: 30%;
+            width: 100%;
+            height: 200px;
+            display: flex;
+            justify-content: space-around;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .steam {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.8); 
+            border-radius: 50%;
+            filter: blur(6px); 
+            animation: riseAndSway 2.5s infinite ease-in;
+            position: absolute;
+            bottom: 0;
+        }
+        .steam:nth-child(1) { left: 20%; animation-delay: 0s; }
+        .steam:nth-child(2) { left: 50%; width: 50px; height: 50px; animation-delay: 0.6s; animation-duration: 3s; }
+        .steam:nth-child(3) { left: 70%; animation-delay: 1.2s; }
+        .steam:nth-child(4) { left: 30%; animation-delay: 0.3s; animation-duration: 2.2s; }
+        .steam:nth-child(5) { left: 60%; animation-delay: 0.9s; animation-duration: 2.8s; }
+
+        @keyframes riseAndSway {
+            0% { transform: translateY(0) translateX(0) scale(1); opacity: 0.9; }
+            50% { transform: translateY(-80px) translateX(15px) scale(1.5); opacity: 0.6; }
+            100% { transform: translateY(-180px) translateX(-15px) scale(2.5); opacity: 0; }
+        }
+
+        /* Bếp gia nhiệt */
+        .heater-base {
+            width: 160px;
+            height: 25px;
+            background: #455a64;
+            border-radius: 10px;
+            margin-top: 15px;
+            position: relative;
+        }
+        .heater-coil {
+            width: 120px;
+            height: 8px;
+            background: #b0bec5;
+            border-radius: 4px;
+            position: absolute;
+            top: -4px;
+            left: 20px;
+            transition: background 1s, box-shadow 1s;
+        }
+
+        /* --- CỘT PHẢI: ĐIỀU KHIỂN --- */
+        .control-panel {
+            flex: 0.8;
+            padding: 40px 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        input[type=range] {
+            width: 100%;
+            margin: 20px 0;
+            accent-color: #d32f2f;
+            cursor: pointer;
+        }
+
+        .temp-display {
+            font-size: 38px;
+            font-weight: 900;
+            color: #d32f2f;
+            text-align: center;
+        }
+
+        .explanation-box {
+            background: #fff8e1;
+            border-left: 6px solid #ffb300;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+            flex-grow: 1;
+        }
+        .exp-title {
+            color: #f57f17;
+            margin-top: 0;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .state-text { font-size: 17px; line-height: 1.6; color: #424242; }
+        .highlight { font-weight: bold; color: #e65100; font-size: 19px; text-decoration: underline;}
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="simulation-panel">
+        <div class="phenomenon-badge" id="phenomenonBadge">NÓNG CHẢY</div>
+
+        <div class="glass-lid">
+            <div class="lid-sweat" id="lidSweat"></div>
+        </div>
+
+        <div class="beaker">
+            <div class="droplets-container" id="droplets">
+                <div class="drop"></div><div class="drop"></div><div class="drop"></div>
+            </div>
+
+            <div class="steam-container" id="steam">
+                <div class="steam"></div><div class="steam"></div><div class="steam"></div>
+                <div class="steam"></div><div class="steam"></div>
+            </div>
+            
+            <div class="water" id="water">
+                <div class="ice-structure" id="iceStructure"></div>
+                <div class="boiling-bubbles" id="boilingBubbles">
+                    <div class="boil-bubble"></div><div class="boil-bubble"></div>
+                    <div class="boil-bubble"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="heater-base">
+            <div class="heater-coil" id="heaterCoil"></div>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <h2 style="margin-top: 0; text-align: center; color: #37474f;">Nhiệt Kế</h2>
+        
+        <div class="temp-display"><span id="tempVal">25</span>°C</div>
+        
+        <input type="range" id="tempSlider" min="-20" max="120" value="25" oninput="processSimulation()">
+        
+        <div style="display: flex; justify-content: space-between; font-weight: bold; color: #9e9e9e;">
+            <span style="color: #0288d1;">❄️ Làm lạnh</span>
+            <span style="color: #d84315;">🔥 Đun nóng</span>
+        </div>
+
+        <div class="explanation-box">
+            <h3 class="exp-title">Trạng Thái Vật Chất</h3>
+            <div class="state-text" id="explanationText">
+                Nước đang ở <b>thể lỏng</b>. Nước lỏng không có hình dạng cố định mà mang hình dạng của cốc chứa.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentState = "liquid"; 
+    let badgeTimeout;
+    let condensationTimer; // Biến lưu trữ Timer ngưng tụ
+
+    function processSimulation() {
+        const temp = parseInt(document.getElementById("tempSlider").value);
+        document.getElementById("tempVal").innerText = temp;
+
+        let targetState = "";
+        if (temp < 0) targetState = "solid";
+        else if (temp >= 0 && temp < 100) targetState = "liquid";
+        else if (temp >= 100) targetState = "gas";
+
+        const water = document.getElementById("water");
+        const iceStructure = document.getElementById("iceStructure");
+        const steam = document.getElementById("steam");
+        const droplets = document.getElementById("droplets");
+        const lidSweat = document.getElementById("lidSweat");
+        const bubbles = document.getElementById("boilingBubbles");
+        const coil = document.getElementById("heaterCoil");
+        const expText = document.getElementById("explanationText");
+
+        // Đổi màu bếp
+        if(temp < 0) {
+            coil.style.background = "#81d4fa"; coil.style.boxShadow = "0 0 10px #81d4fa";
+        } else if (temp < 100) {
+            let heat = temp / 100;
+            coil.style.background = `rgba(${150 + heat*105}, ${150 - heat*50}, 100, 1)`;
+            coil.style.boxShadow = "none";
+        } else {
+            coil.style.background = "#ff3d00"; coil.style.boxShadow = "0 0 15px #ff3d00";
+        }
+
+        // --- XỬ LÝ KHI CÓ SỰ CHUYỂN TRẠNG THÁI ---
+        if (targetState !== currentState) {
+            
+            // Xóa ngay Timer ngưng tụ nếu đang chạy để tránh lỗi vặt
+            if (condensationTimer) clearTimeout(condensationTimer);
+
+            if (targetState === "solid") {
+                triggerPhenomenon("Đông Đặc", "#039be5");
+                
+                water.style.background = "rgba(200, 240, 255, 0.95)"; 
+                water.style.height = "58%"; 
+                iceStructure.style.opacity = "1";
+                iceStructure.style.transform = "translateX(-50%) scale(1)";
+                
+                steam.style.opacity = "0";
+                droplets.style.display = "none"; 
+                lidSweat.style.opacity = "0"; 
+                bubbles.style.opacity = "0"; 
+                expText.innerHTML = "Khi làm lạnh dưới 0°C, nước đông cứng lại tại chỗ thành đá. Khối lượng nở ra một chút. Hiện tượng này gọi là <span class='highlight'>SỰ ĐÔNG ĐẶC</span>.";
+            } 
+            else if (targetState === "liquid") {
+                if (currentState === "solid") {
+                    triggerPhenomenon("Nóng Chảy", "#ff9800");
+                    
+                    iceStructure.style.opacity = "0";
+                    iceStructure.style.transform = "translateX(-50%) scale(0.8)";
+                    water.style.background = "rgba(41, 182, 246, 0.65)";
+                    water.style.height = "55%";
+                    
+                    steam.style.opacity = "0";
+                    droplets.style.display = "none";
+                    lidSweat.style.opacity = "0";
+                    bubbles.style.opacity = "0";
+                    expText.innerHTML = "Khi đun nóng, khối đá dần tan ra thành nước lỏng trở lại. Gọi là <span class='highlight'>SỰ NÓNG CHẢY</span>.";
+                } else if (currentState === "gas") {
+                    triggerPhenomenon("Ngưng Tụ", "#00897b");
+                    steam.style.opacity = "0";
+                    bubbles.style.opacity = "0"; 
+                    
+                    // Kích hoạt Ngưng tụ
+                    lidSweat.style.opacity = "1"; 
+                    setTimeout(() => { droplets.style.display = "block"; }, 1000);
+                    
+                    water.style.background = "rgba(41, 182, 246, 0.65)";
+                    water.style.height = "55%";
+                    expText.innerHTML = "Hơi nước bay lên đụng nắp kính lạnh đọng thành hạt sương. Sương to dần và rơi xuống thành nước. Gọi là <span class='highlight'>SỰ NGƯNG TỤ</span>.";
+
+                    // DỪNG RỚT NƯỚC: Sau 4.5 giây (khi nước dâng lại đầy), tắt hiệu ứng giọt rớt
+                    condensationTimer = setTimeout(() => {
+                        const currentTempValue = parseInt(document.getElementById("tempSlider").value);
+                        // Chỉ tắt nếu vẫn đang ở trạng thái lỏng
+                        if (currentTempValue >= 0 && currentTempValue < 100) {
+                            droplets.style.display = "none";
+                            lidSweat.style.opacity = "0"; 
+                        }
+                    }, 4500);
+                }
+            }
+            else if (targetState === "gas") {
+                triggerPhenomenon("Bay Hơi", "#e64a19");
+                
+                water.style.background = "rgba(41, 182, 246, 0.65)";
+                water.style.height = "15%"; 
+                bubbles.style.opacity = "1"; 
+                steam.style.opacity = "1";   
+                
+                droplets.style.display = "none";
+                lidSweat.style.opacity = "0"; 
+                iceStructure.style.opacity = "0";
+                
+                expText.innerHTML = "Khi đun sôi 100°C, nước nổi bọt khí và cạn dần đi vì biến thành hơi nước bay lên. Gọi là <span class='highlight'>SỰ BAY HƠI</span>.";
+            }
+
+            currentState = targetState;
+        }
+    }
+
+    function triggerPhenomenon(name, color) {
+        const badge = document.getElementById("phenomenonBadge");
+        badge.innerText = "Hiện tượng: " + name;
+        badge.style.backgroundColor = color;
+        badge.style.color = "white";
+        badge.classList.add("badge-active");
+
+        clearTimeout(badgeTimeout);
+        badgeTimeout = setTimeout(() => {
+            badge.classList.remove("badge-active");
+            badge.style.backgroundColor = "transparent";
+            badge.style.color = "transparent";
+        }, 5000); 
+    }
+
+    window.onload = () => {
+        document.getElementById("water").style.height = "55%";
+    };
+</script>
+
+</body>
+</html>
